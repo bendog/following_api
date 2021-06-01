@@ -7,7 +7,7 @@ name = "pypi"
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 # broadcaster = {extras = ["postgres"], version = "*"}
-# jinja2 = "*"
+jinja2 = "*"
 
 [dev-packages]
 
