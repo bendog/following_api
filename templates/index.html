@@ -13,7 +13,14 @@
         <ul id='messages'>
         </ul>
         <script>
-            var client_id = Date.now()
+            function uuidv4() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+
+            var client_id = uuidv4()
             document.querySelector("#ws-id").textContent = client_id;
             var ws = new WebSocket(`{{ websocket_host }}/ws/${client_id}`);
             ws.onmessage = function(event) {
