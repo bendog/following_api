@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+        <script src="https://cdn.plot.ly/plotly-1.58.4.min.js"></script>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <h2>Your ID: <span id="ws-id"></span></h2>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <div id='chart' />
+        <script>
+            function uuidv4() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+
+            var client_id = uuidv4()
+            var ws = new WebSocket(`{{ websocket_host }}/mon/ws/`);
+
+
+            var time = new Date();
+
+            var traceMean = {
+            x: [time],
+            y: [],
+            type: "scatter",
+            mode: 'lines',
+            name: 'Mean',
+            line: {color: 'red'}
+            }
+
+            
+            var traceMedian = {
+            x: [time],
+            y: [],
+            type: "scatter",
+            mode: 'lines',
+            name: 'Median',
+            line: {color: 'green'}
+            }
+
+            var data = [traceMean, traceMedian]
+            var layout 
+
+
+            Plotly.newPlot('chart', data);
+
+
+            ws.onmessage = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+                var data = JSON.parse(event.data)
+                console.log(event);
+                // update chart
+                var time = new Date();
+
+                var update = {
+                x:  [[time], [time]],
+                y: [[data.mean], [data.median]]
+                }
+
+                Plotly.extendTraces('chart', update, [0,1])
+
+            };
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>

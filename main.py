@@ -1,5 +1,8 @@
 #! /usr/bin/env python3.9
+import json
+import math
 import os
+import statistics
 from typing import Dict, List, Optional
 
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -34,8 +37,9 @@ class ConnectionManager:
             await connection.send_text(message)
 
 
-class FollowingStatus:
+class FollowingStatus(ConnectionManager):
     def __init__(self):
+        super().__init__()
         self._status: Dict[str, Optional[int]] = {}
 
     async def add_client(self, client_id: str):
@@ -49,6 +53,7 @@ class FollowingStatus:
     async def update_value(self, client_id: str, value: int):
         """ update the following value for the user """
         self._status[client_id] += value
+        await self.broadcast(self.json)
 
     def client_status(self, client_id: str) -> int:
         """ return the current users score """
@@ -56,15 +61,19 @@ class FollowingStatus:
 
     @property
     def average(self) -> float:
-        """ return the average of following users """
         return sum(self._status.values()) / len(self._status)
 
-    def __dict__(self) -> dict:
-        return self._status
+    @property
+    def json(self) -> str:
+        return json.dumps({
+            "detail": self._status,
+            "mean": statistics.mean(self._status.values()),
+            "median": math.floor(statistics.median_grouped(self._status.values())),
+        })
 
 
 
-manager = ConnectionManager()
+CLIENTS = ConnectionManager()
 FOLLOWING_STATUS = FollowingStatus()
 
 
@@ -80,19 +89,43 @@ async def index(request: Request):
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
-    await manager.connect(websocket)
+    await CLIENTS.connect(websocket)
     await FOLLOWING_STATUS.add_client(client_id) 
     try:
         while True:
-            data = await websocket.receive_text()
-            await manager.send_personal_message(f"You wrote: {data}", websocket)
+            data: str = await websocket.receive_text()
+            await CLIENTS.send_personal_message(f"You wrote: {data}", websocket)
             try:
                 await FOLLOWING_STATUS.update_value(client_id, int(data))
-                await manager.broadcast(f"Client #{client_id} adjusted their score to: {FOLLOWING_STATUS.client_status(client_id)}")
-                await manager.broadcast(f"Following Value is {FOLLOWING_STATUS.average:.1f}")
+                await CLIENTS.broadcast(f"Client #{client_id} adjusted their score to: {FOLLOWING_STATUS.client_status(client_id)}")
+                await CLIENTS.broadcast(f"Following Value is {FOLLOWING_STATUS.average:.1f}")
             except ValueError:
-                await manager.broadcast(f"Client #{client_id} says: {data}")
+                await CLIENTS.broadcast(f"Client #{client_id} says: {data}")
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        await manager.broadcast(f"Client #{client_id} left the chat")
+        CLIENTS.disconnect(websocket)
+        await CLIENTS.broadcast(f"Client #{client_id} left the chat")
         await FOLLOWING_STATUS.remove_client(client_id)
+
+
+
+@app.websocket("/mon/ws/")
+async def monitor_endpoint(websocket: WebSocket):
+    """ websocket for monitoring page """
+    await FOLLOWING_STATUS.connect(websocket)
+    try:
+        while True:
+            # handle the websocket
+            data: str = await websocket.receive_text()
+            print(data)
+    except WebSocketDisconnect:
+        await FOLLOWING_STATUS.disconnect(websocket)
+
+
+@app.get("/mon/", response_class=HTMLResponse)
+async def monitor(request: Request):
+    template = "monitor.html"
+    context = {
+        "request": request,
+        "websocket_host": WEBSOCKET_HOST,
+    }
+    return templates.TemplateResponse(template, context)
