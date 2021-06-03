@@ -10,6 +10,12 @@
             <input type="text" id="messageText" autocomplete="off"/>
             <button>Send</button>
         </form>
+        <button onClick="sendInt(3)">i could give this talk</button> 
+        <button onClick="sendInt(2)">speed up</button> 
+        <button onClick="sendInt(1)">following</button> 
+        <button onClick="sendInt(-1)">not following</button> 
+        <button onClick="sendInt(-2)">lost</button> 
+        <button onClick="sendInt(-3)">completely lost</button> 
         <ul id='messages'>
         </ul>
         <script>
@@ -35,6 +41,9 @@
                 ws.send(input.value)
                 input.value = ''
                 event.preventDefault()
+            }
+            function sendInt(number) {
+                ws.send(number)
             }
         </script>
     </body>

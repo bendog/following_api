@@ -52,7 +52,7 @@ class FollowingStatus(ConnectionManager):
 
     async def update_value(self, client_id: str, value: int):
         """ update the following value for the user """
-        self._status[client_id] += value
+        self._status[client_id] = value
         await self.broadcast(self.json)
 
     def client_status(self, client_id: str) -> int:

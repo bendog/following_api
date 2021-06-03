@@ -5,15 +5,15 @@
         <script src="https://cdn.plot.ly/plotly-1.58.4.min.js"></script>
     </head>
     <body>
-        <h1>WebSocket Chat</h1>
-        <h2>Your ID: <span id="ws-id"></span></h2>
+        <h1>WebSocket Monitor</h1>
+        {# <h2>Your ID: <span id="ws-id"></span></h2>
         <form action="" onsubmit="sendMessage(event)">
             <input type="text" id="messageText" autocomplete="off"/>
             <button>Send</button>
-        </form>
+        </form> #}
+        <div id='chart' />
         <ul id='messages'>
         </ul>
-        <div id='chart' />
         <script>
             function uuidv4() {
                 return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
